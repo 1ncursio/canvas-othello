@@ -69,12 +69,14 @@ export default class State {
         parseInt(action / CELL_COUNT),
         true
       );
+    } else {
+      console.log("스킵");
     }
 
-    // AI끼리일때만 치환
-    const w = state.blackPieces;
-    state.blackPieces = state.whitePieces;
-    state.whitePieces = w;
+    [state.blackPieces, state.whitePieces] = [
+      state.whitePieces,
+      state.blackPieces,
+    ];
 
     // 2회 연속 패스 판정
     if (
@@ -98,7 +100,7 @@ export default class State {
       }
     }
 
-    if (!actions) {
+    if (actions.length === 0) {
       actions.push(CELL_COUNT ** 2); // 패스
     }
 

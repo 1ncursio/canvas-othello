@@ -22,11 +22,11 @@ const hoverCell = new HoverCell();
 
 /* 이벤트 핸들러 */
 
-let timer = null;
+let mouseMoveTimer = null;
 canvas.addEventListener("mousemove", (e) => {
-  if (!timer) {
-    timer = setTimeout(() => {
-      timer = null;
+  if (!mouseMoveTimer) {
+    mouseMoveTimer = setTimeout(() => {
+      mouseMoveTimer = null;
       const { left, top } = canvas.getBoundingClientRect();
       const x = e.clientX - left;
       const y = e.clientY - top;
@@ -44,18 +44,17 @@ canvas.addEventListener("mouseenter", (e) => {
   hoverCell.show();
 });
 
+let mouseDownTimer = null;
 canvas.addEventListener("mousedown", (e) => {
-  if (!timer) {
-    timer = setTimeout(() => {
+  if (!mouseDownTimer) {
+    mouseDownTimer = setTimeout(() => {
       console.log("ㅇㅅㅇ");
-      timer = null;
+      mouseDownTimer = null;
       const { left, top } = canvas.getBoundingClientRect();
       const x = e.clientX - left;
       const y = e.clientY - top;
       const index =
         parseInt(x / CELL_SIZE) + parseInt(y / CELL_SIZE) * CELL_COUNT;
-      //   console.log({ index });
-      //   console.log({ x: parseInt(x / CELL_SIZE), y: parseInt(y / CELL_SIZE) });
       const isLegalAction = state.isLegalActionXy(
         parseInt(x / CELL_SIZE),
         parseInt(y / CELL_SIZE)
@@ -65,8 +64,12 @@ canvas.addEventListener("mousedown", (e) => {
 
       if (isLegalAction && isFirstPlayer) {
         state = state.next(index);
-        randomAIAction();
-        console.log("AI 대기중...");
+        if (!state.isDone()) {
+          randomAIAction();
+          console.log("AI 대기중...");
+        } else {
+          console.log("게임 끝!");
+        }
       }
     }, 20);
   }
@@ -74,13 +77,21 @@ canvas.addEventListener("mousedown", (e) => {
 
 const randomAIAction = () =>
   setTimeout(() => {
-    state = state.next(randomAction(state));
-    console.log("AI 수 선택 완료");
-  }, 3000);
+    const selectedAction = randomAction(state);
+    console.log({ selectedAction });
+    if (selectedAction !== 64) {
+      console.log("AI 수 선택 완료");
+    }
 
-let time = 0;
+    state = state.next(selectedAction);
+    if (state.isDone()) {
+      console.log("게임 끝!");
+    }
+  }, 500);
+
+let renderTime = 0;
 function render() {
-  time += 1;
+  renderTime += 1;
 
   const renderId = window.requestAnimationFrame(render);
   context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -98,11 +109,9 @@ function render() {
       discs[i].setIsblack(!isFirstPlayer).draw(context);
     }
   });
-  if (isFirstPlayer) {
-    state.legalActions().forEach((v) => indicators[v].draw(context));
-  } else {
-    state.legalActions().forEach((v) => indicators[v].draw(context));
-  }
+  // if (isFirstPlayer) {
+  state.legalActions().forEach((v) => v !== 64 && indicators[v].draw(context));
+  // }
 }
 
 window.requestAnimationFrame(render);
