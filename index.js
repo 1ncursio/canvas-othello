@@ -1,23 +1,23 @@
+import { CELL_SIZE, CELL_COUNT, CANVAS_SIZE } from "./config.js";
 import HoverCell from "./HoverCell.js";
 import Grid from "./Grid.js";
 import Disc from "./Disc.js";
 
 const canvas = document.querySelector("canvas");
-const ctx = canvas.getContext("2d");
+const context = canvas.getContext("2d");
 
-const CANVAS_WIDTH = 640;
-const CANVAS_HEIGHT = 640;
+canvas.width = CANVAS_SIZE;
+canvas.height = CANVAS_SIZE;
 
-canvas.width = CANVAS_WIDTH;
-canvas.height = CANVAS_HEIGHT;
+const blackDiscs = [];
+const whiteDiscs = [];
+const grid = new Grid();
+const hoverCell = new HoverCell();
 
-const grid = new Grid(CANVAS_WIDTH, CANVAS_HEIGHT, "rgba(255, 255, 255, 0.5)");
-const hoverCell = new HoverCell(640, 640, 80, 80, "rgba(0, 0, 0, 0.3)");
-const disc = new Disc(40, 40, 40, "rgba(0,0,0,1)");
-disc.draw(ctx);
-
-grid.draw(ctx);
-hoverCell.draw(ctx);
+blackDiscs.push(new Disc(true, 27));
+blackDiscs.push(new Disc(true, 36));
+whiteDiscs.push(new Disc(false, 28));
+whiteDiscs.push(new Disc(false, 35));
 
 /* 이벤트 핸들러 */
 
@@ -31,20 +31,17 @@ canvas.addEventListener("mousemove", (e) => {
       const x = e.clientX - left;
       const y = e.clientY - top;
 
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      hoverCell.update(ctx, { x, y });
-      grid.update(ctx);
+      hoverCell.move(x, y);
     }, 20);
   }
 });
 
 canvas.addEventListener("mouseleave", (e) => {
-  hoverCell.color = "rgba(0, 0, 0, 0)";
+  hoverCell.hide();
 });
 
 canvas.addEventListener("mouseenter", (e) => {
-  hoverCell.color = "rgba(0, 0, 0, 0.3)";
+  hoverCell.show();
 });
 
 canvas.addEventListener("mousedown", (e) => {
@@ -55,9 +52,21 @@ canvas.addEventListener("mousedown", (e) => {
       const { left, top } = canvas.getBoundingClientRect();
       const x = e.clientX - left;
       const y = e.clientY - top;
-      const index = parseInt(x / 80) + parseInt(y / 80) * 8;
+      const index =
+        parseInt(x / CELL_SIZE) + parseInt(y / CELL_SIZE) * CELL_COUNT;
       console.log({ index });
-      console.log({ x: parseInt(x / 80), y: parseInt(y / 80) });
+      console.log({ x: parseInt(x / CELL_SIZE), y: parseInt(y / CELL_SIZE) });
     }, 20);
   }
 });
+
+function render() {
+  const renderId = window.requestAnimationFrame(render);
+  context.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+  grid.draw(context);
+  hoverCell.draw(context);
+  blackDiscs.forEach((v) => v.draw(context));
+  whiteDiscs.forEach((v) => v.draw(context));
+}
+
+window.requestAnimationFrame(render);
