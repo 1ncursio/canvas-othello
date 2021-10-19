@@ -1,5 +1,7 @@
-class State {
-  constructor(pieces, enemyPieces, depth = 0) {
+import { CELL_COUNT } from "./config.js";
+
+export default class State {
+  constructor(blackPieces = undefined, whitePieces = undefined, depth = 0) {
     // 방향 정수
     this.dxy = [
       [1, 0],
@@ -14,18 +16,18 @@ class State {
 
     // 연속 패스에 따른 종료
     this.passEnd = false;
-
-    // 돌의 배치
-    this.pieces = pieces;
-    this.enemyPieces = enemyPieces;
     this.depth = depth;
 
     // 돌의 초기 배치
-    if (!pieces || !enemyPieces) {
-      this.pieces = Array.from({ length: 64 }, () => 0);
-      this.pieces[27] = this.pieces[36] = 1;
-      this.enemyPieces = Array.from({ length: 64 }, () => 0);
-      this.enemyPieces[28] = this.enemyPieces[35] = 1;
+    if (blackPieces && whitePieces) {
+      // 돌의 배치
+      this.blackPieces = blackPieces;
+      this.whitePieces = whitePieces;
+    } else {
+      this.blackPieces = Array.from({ length: CELL_COUNT ** 2 }, () => 0);
+      this.blackPieces[27] = this.blackPieces[36] = 1;
+      this.whitePieces = Array.from({ length: CELL_COUNT ** 2 }, () => 0);
+      this.whitePieces[28] = this.whitePieces[35] = 1;
     }
   }
 
@@ -38,7 +40,7 @@ class State {
   isLose() {
     return (
       this.isDone() &&
-      this.pieceCount(this.pieces) < this.pieceCount(this.enemyPieces)
+      this.pieceCount(this.blackPieces) < this.pieceCount(this.whitePieces)
     );
   }
 
@@ -46,30 +48,39 @@ class State {
   isDraw() {
     return (
       this.isDone() &&
-      this.pieceCount(this.pieces) === this.pieceCount(this.enemyPieces)
+      this.pieceCount(this.blackPieces) === this.pieceCount(this.whitePieces)
     );
   }
 
   // 게임 종료 여부 판정
   isDone() {
     return (
-      this.pieceCount(this.pieces) + this.pieceCount(this.enemyPieces) === 64 ||
-      this.passEnd
+      this.pieceCount(this.blackPieces) + this.pieceCount(this.whitePieces) ===
+        CELL_COUNT ** 2 || this.passEnd
     );
   }
 
   // 다음 상태 얻기
   next(action) {
-    const state = new State(this.pieces, this.enemyPieces, this.depth + 1);
-    if (action != 64) {
-      state.isLegalActionXy(action % 8, Math.floor(action / 8), true);
-      const w = state.pieces;
-      state.pieces = state.enemyPieces;
-      state.enemyPieces = w;
+    const state = new State(this.blackPieces, this.whitePieces, this.depth + 1);
+    if (action != CELL_COUNT ** 2) {
+      state.isLegalActionXy(
+        action % CELL_COUNT,
+        parseInt(action / CELL_COUNT),
+        true
+      );
     }
 
+    // AI끼리일때만 치환
+    const w = state.blackPieces;
+    state.blackPieces = state.whitePieces;
+    state.whitePieces = w;
+
     // 2회 연속 패스 판정
-    if (action === 64 && state.legalActions()[0] === 64) {
+    if (
+      action === CELL_COUNT ** 2 &&
+      state.legalActions()[0] === CELL_COUNT ** 2
+    ) {
       state.passEnd = true;
     }
     return state;
@@ -79,16 +90,16 @@ class State {
   legalActions() {
     const actions = [];
 
-    for (let j = 0; j < 8; j++) {
-      for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < CELL_COUNT; j++) {
+      for (let i = 0; i < CELL_COUNT; i++) {
         if (this.isLegalActionXy(i, j)) {
-          actions.push(i + j * 8);
+          actions.push(i + j * CELL_COUNT);
         }
       }
     }
 
     if (!actions) {
-      actions.push(64); // 패스
+      actions.push(CELL_COUNT ** 2); // 패스
     }
 
     return actions;
@@ -107,36 +118,37 @@ class State {
         7 < y ||
         x < 0 ||
         7 < x ||
-        that.enemyPieces[x + y * 8] !== 1
+        that.whitePieces[x + y * CELL_COUNT] !== 1
       ) {
         return false;
       }
 
       // 2번째 이후
-      for (let j = 0; j < 8; j++) {
+      for (let j = 0; j < CELL_COUNT; j++) {
         // 빈 칸
         if (
           y < 0 ||
           7 < y ||
           x < 0 ||
           7 < x ||
-          (that.enemyPieces[x + y * 8] == 0 && that.pieces[x + y * 8] == 0)
+          (that.whitePieces[x + y * CELL_COUNT] == 0 &&
+            that.blackPieces[x + y * CELL_COUNT] == 0)
         ) {
           return false;
         }
 
         // 자신의 돌
-        if (that.pieces[x + y * 8] == 1) {
+        if (that.blackPieces[x + y * CELL_COUNT] == 1) {
           // 반전
           if (flip) {
-            for (let i = 0; i < 8; i++) {
+            for (let i = 0; i < CELL_COUNT; i++) {
               x = x - dx;
               y = y - dy;
-              if (that.pieces[x + y * 8] == 1) {
+              if (that.blackPieces[x + y * CELL_COUNT] == 1) {
                 return true;
               }
-              that.pieces[x + y * 8] = 1;
-              that.enemyPieces[x + y * 8] = 0;
+              that.blackPieces[x + y * CELL_COUNT] = 1;
+              that.whitePieces[x + y * CELL_COUNT] = 0;
             }
           }
           return true;
@@ -149,13 +161,16 @@ class State {
     }
 
     // 빈칸 없음
-    if (this.enemyPieces[x + y * 8] === 1 || this.pieces[x + y * 8] === 1) {
+    if (
+      this.whitePieces[x + y * CELL_COUNT] === 1 ||
+      this.blackPieces[x + y * CELL_COUNT] === 1
+    ) {
       return false;
     }
 
     // 돌을 놓음
     if (flip) {
-      this.pieces[x + y * 8] = 1;
+      this.blackPieces[x + y * CELL_COUNT] = 1;
     }
 
     // 임의의 위치의 합법적인 수 여부 확인
@@ -171,25 +186,6 @@ class State {
   // 선 수 여부 확인
   isFirstPlayer() {
     return this.depth % 2 === 0;
-  }
-
-  // 문자열 표시
-  print() {
-    const ox = this.isFirstPlayer() ? ["o", "x"] : ["x", "o"];
-    let str = "";
-    for (let i = 0; i < 64; i++) {
-      if (this.pieces[i] === 1) {
-        str += ox[0];
-      } else if (this.enemyPieces[i] === 1) {
-        str += ox[1];
-      } else {
-        str += "-";
-      }
-      if (i % 8 == 7) {
-        str += "\n";
-      }
-    }
-    return str;
   }
 }
 
@@ -223,4 +219,4 @@ function main() {
   }
 }
 
-main();
+// main();

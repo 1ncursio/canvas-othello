@@ -1,10 +1,10 @@
 import { BLACK_DISC_COLOR, WHITE_DISC_COLOR, CELL_SIZE } from "./config.js";
 
 export default class Disc {
-  constructor(isBlack, index) {
+  constructor(index) {
     this.radius = CELL_SIZE * 0.5;
-    this.isBlack = isBlack;
-    this.color = isBlack ? BLACK_DISC_COLOR : WHITE_DISC_COLOR;
+    this.isBlack = true;
+    this.color = true ? BLACK_DISC_COLOR : WHITE_DISC_COLOR;
     this.index = index;
   }
 
@@ -20,5 +20,11 @@ export default class Disc {
     context.fill();
     context.stroke();
     context.closePath();
+  }
+
+  setIsblack(isBlack) {
+    this.isBlack = isBlack;
+    this.color = isBlack ? BLACK_DISC_COLOR : WHITE_DISC_COLOR;
+    return this;
   }
 }
